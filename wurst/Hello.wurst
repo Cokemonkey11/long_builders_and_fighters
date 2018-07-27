@@ -1,0 +1,109 @@
+package Hello
+
+import ClosureTimers
+import HashMap
+import SoundUtils
+
+let grp = CreateGroup()
+function postGame(bool allianceWin)
+	grp.enumUnitsInRect(bj_mapInitialPlayableArea)
+	for u from grp
+		u.pause()
+
+	doAfter(10.) ->
+		for i = 0 to 23
+			if (i % 2 == 0 and allianceWin) or (i % 2 == 1 and not allianceWin)
+				CustomVictoryBJ(Player(i), true, false )
+			else
+				CustomDefeatBJ(Player(i), "yOu LoSt")
+
+var heroesPlaying = 0
+var playersPlaying = 0
+let observatory = createUnit(Player(0), 'haro', vec2(-12544.0, -256.0), angle(3. * bj_PI / 2.))
+let dragon      = createUnit(Player(1), 'ndrb', vec2( 13056.0, -256.0), angle(3. * bj_PI / 2.))
+let ownerMap = new HashMap<trigger, player>()
+init
+	// Alliances
+	for i = 0 to 23
+		if Player(i).getSlotState() == PLAYER_SLOT_STATE_PLAYING
+			heroesPlaying += 1
+			if Player(i).getController() == MAP_CONTROL_USER
+				playersPlaying += 1
+
+		for j = i + 1 to 23
+			if (i % 2 == j % 2)
+				SetPlayerAlliance(Player(i), Player(j), ALLIANCE_PASSIVE, true)
+				SetPlayerAlliance(Player(i), Player(j), ALLIANCE_SHARED_VISION, true)
+				SetPlayerAlliance(Player(j), Player(i), ALLIANCE_PASSIVE, true)
+				SetPlayerAlliance(Player(j), Player(i), ALLIANCE_SHARED_VISION, true)
+			else
+				SetPlayerAlliance(Player(i), Player(j), ALLIANCE_PASSIVE, false)
+				SetPlayerAlliance(Player(i), Player(j), ALLIANCE_SHARED_VISION, false)
+				SetPlayerAlliance(Player(j), Player(i), ALLIANCE_PASSIVE, false)
+				SetPlayerAlliance(Player(j), Player(i), ALLIANCE_SHARED_VISION, false)
+
+	// Control
+	grp.enumUnitsInRect(bj_mapInitialPlayableArea)
+	for u from grp
+		if u.getTypeId() == 'ncop'
+			let reg = CreateRegion()..addRect(Rect(u.getX() - 92., u.getY() - 92., u.getX() + 92., u.getY() + 92.))
+			let t = CreateTrigger()
+			ownerMap.put(t, u.getOwner())
+
+			t..registerEnterRegion(reg, null)..addAction() ->
+				let tU = GetTriggerUnit()
+				let owner = ownerMap.get(GetTriggeringTrigger())
+				if not IsUnitType(tU, UNIT_TYPE_PEON)
+					SetUnitOwner(GetEnteringUnit(), owner, true)
+					if owner.getSlotState() == PLAYER_SLOT_STATE_PLAYING
+						tU.issuePointOrder("attack", vec2(0., 0.))
+					else
+						if owner.getId() % 2 == 0
+							tU.issuePointOrder("attack", dragon.getPos())
+						else
+							tU.issuePointOrder("attack", observatory.getPos())
+
+	// Lumber Mills
+	doPeriodically(1.) cb ->
+		GroupEnumUnitsOfPlayer(grp, Player(0), null)
+		for u from grp
+			if u.getTypeId() == 'hlum' and u.isAlive()
+				createTTEx(u.getPos3Real(), vec2(0., 0.1), "+10", 10., 1., colorA(155, 255, 155, 155))
+				Player(0).addLumber(10)
+		GroupEnumUnitsOfPlayer(grp, Player(1), null)
+		for u from grp
+			if u.getTypeId() == 'ofor' and u.isAlive()
+				createTTEx(u.getPos3Real(), vec2(0., 0.1), "+10", 10., 1., colorA(155, 255, 155, 155))
+				Player(1).addLumber(10)
+
+	// Victory Condition
+	doAfter(5.) ->
+		CreateSound(Sounds.hint, false, false, false, 12700, 12700, "")..play()
+		for i = 0 to 23
+			if i % 2 == 0
+				printTimedToPlayer("|cffffcc00Primary Quest:|r destroy the Red Dragon Roost.  Your Observatory must survive.", 30., Player(i))
+			else
+				printTimedToPlayer("|cffffcc00Primary Quest:|r destroy the Observatory.  Your Red Dragon Roost must survive.", 30, Player(i))
+
+		CreateTrigger()..registerUnitEvent(observatory, EVENT_UNIT_DEATH)..addAction() ->
+			for i = 0 to 23
+				if i % 2 == 0
+					printTimedToPlayer("|cffffcc00Defeat!|r", 10., Player(i))
+					destroy new SoundDefinition(Sounds.questFailed, false)..playForPlayer(Player(i))
+				else
+					printTimedToPlayer("|cffffcc00Victory!|r", 10., Player(i))
+					destroy new SoundDefinition(Sounds.questCompleted, false)..playForPlayer(Player(i))
+
+			dragon.setInvulnerable(true)
+			postGame(false)
+
+		CreateTrigger()..registerUnitEvent(dragon, EVENT_UNIT_DEATH)..addAction() ->
+			for i = 0 to 23
+				if i % 2 == 0
+					printTimedToPlayer("|cffffcc00Victory!|r", 10., Player(i))
+					destroy new SoundDefinition(Sounds.questCompleted, false)..playForPlayer(Player(i))
+				else
+					printTimedToPlayer("|cffffcc00Defeat!|r", 10., Player(i))
+					destroy new SoundDefinition(Sounds.questFailed, false)..playForPlayer(Player(i))
+			observatory.setInvulnerable(true)
+			postGame(true)

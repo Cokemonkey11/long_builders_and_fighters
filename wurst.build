@@ -1,0 +1,9 @@
+---
+projectName: "long_builders_fighters"
+dependencies:
+- "https://github.com/wurstscript/wurstStdlib2"
+buildMapData:
+  name: "Long Builders Fighters 0.1.0"
+  fileName: "(24)long_builders_fighters.0.1.0"
+  author: "Cokemonkey11"
+  playerCount: 24
