@@ -67,14 +67,14 @@ init
 	doPeriodically(1.) cb ->
 		GroupEnumUnitsOfPlayer(grp, Player(0), null)
 		for u from grp
-			if u.getTypeId() == 'hlum' and u.isAlive()
-				createTTEx(u.getPos3Real(), vec2(0., 0.1), "+10", 10., 1., colorA(155, 255, 155, 155))
-				Player(0).addLumber(10)
+			if u.getTypeId() == 'hlum' and u.isAlive() and u.hasAbility('Arlm')
+				createTTEx(u.getPos3Real(), vec2(0., 0.1), "+5", 10., 1., colorA(155, 255, 155, 155))
+				Player(0).addLumber(5)
 		GroupEnumUnitsOfPlayer(grp, Player(1), null)
 		for u from grp
-			if u.getTypeId() == 'ofor' and u.isAlive()
-				createTTEx(u.getPos3Real(), vec2(0., 0.1), "+10", 10., 1., colorA(155, 255, 155, 155))
-				Player(1).addLumber(10)
+			if u.getTypeId() == 'ofor' and u.isAlive() and u.hasAbility('Arlm')
+				createTTEx(u.getPos3Real(), vec2(0., 0.1), "+5", 10., 1., colorA(155, 255, 155, 155))
+				Player(1).addLumber(5)
 
 	// Victory Condition
 	doAfter(5.) ->
